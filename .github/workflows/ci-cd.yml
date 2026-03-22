@@ -266,7 +266,7 @@ jobs:
             "$EC2_USER@$EC2_HOST" \
             "sudo cat /var/log/deploy.log" 2>&1
 
-      # ── Health check ─────────────────────────────────────────
+      # ── Health check ───------──────────────────────────────────────
       - name: Health check
         run: |
           echo "Waiting 15s for container to start..."
