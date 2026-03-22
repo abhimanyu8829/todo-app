@@ -214,7 +214,7 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
 
-      # ── Resolve the api image tag ────────────────────────────
+      # ── Resolve the api imagea tag ────────────────────────────
       # We need the same tag that was just pushed.
       # We re-read from ECR to avoid output coordination across matrix jobs.
       - name: Configure AWS credentials
