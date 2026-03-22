@@ -247,25 +247,33 @@ jobs:
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
-          IMAGE: ${{ env.CR_ENDPOINT }}/${{ secrets.CR_REPOSITORY_API }}
-          TAG: ${{ steps.tag.outputs.TAG }}
-          SERVICE: api
-          APP_PORT: ${{ secrets.APP_PORT }}
-          APP_USER: ${{ secrets.APP_DOCKER_USER }}
         run: |
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
             -o ConnectTimeout=30 \
-            -v \
-            "$EC2_USER@$EC2_HOST" \
-            "IMAGE=$IMAGE TAG=$TAG SERVICE=$SERVICE APP_PORT=$APP_PORT APP_USER=$APP_USER bash /usr/local/bin/deploy.sh" 2>&1 || true
+            "$EC2_USER@$EC2_HOST" << EOF
 
-          echo "--- Deploy log from server ---"
-          ssh -i ~/.ssh/deploy_key \
-            -o StrictHostKeyChecking=no \
-            "$EC2_USER@$EC2_HOST" \
-            "sudo cat /var/log/deploy.log" 2>&1
+            echo "⏳ Waiting for cloud-init..."
+            cloud-init status --wait
 
+            echo "✅ Cloud-init done"
+
+            while [ ! -f /usr/local/bin/deploy.sh ]; do
+              echo "Waiting for deploy.sh..."
+              sleep 5
+            done
+
+            echo "🚀 Running deployment..."
+
+            IMAGE=${{ env.CR_ENDPOINT }}/${{ secrets.CR_REPOSITORY_API }} \
+            TAG=${{ steps.tag.outputs.TAG }} \
+            SERVICE=api \
+            APP_PORT=${{ secrets.APP_PORT }} \
+            AWS_REGION=${{ secrets.AWS_REGION }} \
+            ECR_ENDPOINT=${{ env.CR_ENDPOINT }} \
+            bash /usr/local/bin/deploy.sh
+
+          EOF
       # ── Health check ─────────────────────────────────────
       - name: Health check
         run: |
