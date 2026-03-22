@@ -206,7 +206,7 @@ jobs:
         uses: actions/checkout@v4
 
       # ── Write the SSH private key to disk ────────────────────
-      # EC2_SSH_PRIVATE_KEY secret = your ~/.ssh/id_rsa content
+      # EC2_SSH_PRIVATE_KEY secrets = your ~/.ssh/id_rsa content
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
