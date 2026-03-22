@@ -246,18 +246,25 @@ jobs:
       - name: Deploy to EC2 via SSH
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
-          EC2_USER: ${{ secrets.EC2_USER }} # ubuntu
+          EC2_USER: ${{ secrets.EC2_USER }}
           IMAGE: ${{ env.CR_ENDPOINT }}/${{ secrets.CR_REPOSITORY_API }}
           TAG: ${{ steps.tag.outputs.TAG }}
           SERVICE: api
-          APP_PORT: ${{ secrets.APP_PORT }} # e.g. 3000
-          APP_USER: ${{ secrets.APP_DOCKER_USER }} # e.g. appuser
+          APP_PORT: ${{ secrets.APP_PORT }}
+          APP_USER: ${{ secrets.APP_DOCKER_USER }}
         run: |
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 \
+            -v \
             "$EC2_USER@$EC2_HOST" \
-            "IMAGE=$IMAGE TAG=$TAG SERVICE=$SERVICE APP_PORT=$APP_PORT APP_USER=$APP_USER \
-             bash /usr/local/bin/deploy.sh"
+            "IMAGE=$IMAGE TAG=$TAG SERVICE=$SERVICE APP_PORT=$APP_PORT APP_USER=$APP_USER bash /usr/local/bin/deploy.sh" 2>&1 || true
+
+          echo "--- Deploy log from server ---"
+          ssh -i ~/.ssh/deploy_key \
+            -o StrictHostKeyChecking=no \
+            "$EC2_USER@$EC2_HOST" \
+            "sudo cat /var/log/deploy.log" 2>&1
 
       # ── Health check ─────────────────────────────────────────
       - name: Health check
