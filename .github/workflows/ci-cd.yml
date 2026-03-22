@@ -16,9 +16,8 @@ permissions:
 # These are set once here and inherited by all jobs.
 # Values come from GitHub → Settings → Secrets → Actions
 env:
-  AWS_REGION:   ${{ secrets.AWS_REGION }}
-  CR_ENDPOINT:  ${{ secrets.CR_ENDPOINT }}    # e.g. 123456789.dkr.ecr.ap-south-1.amazonaws.com
-
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  CR_ENDPOINT: ${{ secrets.CR_ENDPOINT }} # e.g. 123456789.dkr.ecr.ap-south-1.amazonaws.com
 
 # ══════════════════════════════════════════════════════════════
 # JOB 1 — Lint & Test  (runs once, not per service)
@@ -53,32 +52,31 @@ jobs:
       - name: Run tests
         run: npm test || true
 
-
-# ══════════════════════════════════════════════════════════════
-# JOB 2 — Build + Push (parallel per service)
-#
-# Runs 4 containers in parallel: api, cron, dev, prod
-# Each one:
-#   a) Resolves its ECR repo + Dockerfile from the matrix
-#   b) Auto-increments the image tag (reads latest from ECR)
-#   c) Builds with docker buildx
-#   d) Scans with Trivy (api only)
-#   e) Pushes to ECR
-# ══════════════════════════════════════════════════════════════
+  # ══════════════════════════════════════════════════════════════
+  # JOB 2 — Build + Push (parallel per service)
+  #
+  # Runs 4 containers in parallel: api, cron, dev, prod
+  # Each one:
+  #   a) Resolves its ECR repo + Dockerfile from the matrix
+  #   b) Auto-increments the image tag (reads latest from ECR)
+  #   c) Builds with docker buildx
+  #   d) Scans with Trivy (api only)
+  #   e) Pushes to ECR
+  # ══════════════════════════════════════════════════════════════
   build-push:
     name: Build & Push — ${{ matrix.service }}
     runs-on: ubuntu-latest
     needs: validate
 
     strategy:
-      fail-fast: false   # if one service fails, others keep going
+      fail-fast: false # if one service fails, others keep going
       matrix:
         service: [api, cron, dev, prod]
 
     outputs:
       # Only the api tag is used by the deploy job.
       # For multi-service deploys, extend this pattern.
-      api_tag:  ${{ steps.tag.outputs.TAG }}
+      api_tag: ${{ steps.tag.outputs.TAG }}
 
     steps:
       - name: Checkout
@@ -115,9 +113,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ env.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
       # ── Auto-increment tag (reads latest 0.0.0.X from ECR) ──
       #   Race-condition safe because concurrency: group cancels
@@ -167,11 +165,11 @@ jobs:
         if: matrix.service == 'api'
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref:      "${{ env.IMAGE }}:${{ steps.tag.outputs.TAG }}"
-          format:         table
-          exit-code:      0           # ← change to 1 to block on vulnerabilities
+          image-ref: '${{ env.IMAGE }}:${{ steps.tag.outputs.TAG }}'
+          format: table
+          exit-code: 0 # ← change to 1 to block on vulnerabilities
           ignore-unfixed: true
-          severity:       CRITICAL,HIGH
+          severity: CRITICAL,HIGH
 
       # ── ECR login + push ─────────────────────────────────────
       - name: Login to ECR
@@ -188,21 +186,20 @@ jobs:
           echo "### ✅ ${{ matrix.service }} pushed" >> $GITHUB_STEP_SUMMARY
           echo "**Image:** \`$IMAGE:${{ steps.tag.outputs.TAG }}\`" >> $GITHUB_STEP_SUMMARY
 
-
-# ══════════════════════════════════════════════════════════════
-# JOB 3 — Deploy to EC2
-#
-# Runs after ALL services are pushed successfully.
-# SSHes into the EC2 server and runs /usr/local/bin/deploy.sh
-# which: pulls the new image from ECR and restarts the container.
-#
-# The EC2 instance has an IAM role that allows it to pull from
-# ECR — so no AWS keys are stored on the server.
-# ══════════════════════════════════════════════════════════════
+  # ══════════════════════════════════════════════════════════════
+  # JOB 3 — Deploy to EC2
+  #
+  # Runs after ALL services are pushed successfully.
+  # SSHes into the EC2 server and runs /usr/local/bin/deploy.sh
+  # which: pulls the new image from ECR and restarts the container.
+  #
+  # The EC2 instance has an IAM role that allows it to pull from
+  # ECR — so no AWS keys are stored on the server.
+  # ══════════════════════════════════════════════════════════════
   deploy:
     name: Deploy to EC2
     runs-on: ubuntu-latest
-    needs: build-push   # waits for ALL matrix jobs to finish
+    needs: build-push # waits for ALL matrix jobs to finish
 
     steps:
       - name: Checkout
@@ -223,9 +220,9 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
         with:
-          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region:            ${{ env.AWS_REGION }}
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Get latest api tag from ECR
         id: tag
@@ -248,13 +245,13 @@ jobs:
       # It pulls the image and restarts the container.
       - name: Deploy to EC2 via SSH
         env:
-          EC2_HOST:  ${{ secrets.EC2_HOST }}
-          EC2_USER:  ${{ secrets.EC2_USER }}           # ubuntu
-          IMAGE:     ${{ env.CR_ENDPOINT }}/${{ secrets.CR_REPOSITORY_API }}
-          TAG:       ${{ steps.tag.outputs.TAG }}
-          SERVICE:   api
-          APP_PORT:  ${{ secrets.APP_PORT }}            # e.g. 3000
-          APP_USER:  ${{ secrets.APP_DOCKER_USER }}     # e.g. appuser
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }} # ubuntu
+          IMAGE: ${{ env.CR_ENDPOINT }}/${{ secrets.CR_REPOSITORY_API }}
+          TAG: ${{ steps.tag.outputs.TAG }}
+          SERVICE: api
+          APP_PORT: ${{ secrets.APP_PORT }} # e.g. 3000
+          APP_USER: ${{ secrets.APP_DOCKER_USER }} # e.g. appuser
         run: |
           ssh -i ~/.ssh/deploy_key \
             -o StrictHostKeyChecking=no \
