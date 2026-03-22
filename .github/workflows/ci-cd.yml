@@ -256,7 +256,7 @@ jobs:
             echo "⏳ Waiting for cloud-init..."
             cloud-init status --wait
 
-            echo "✅ Cloud-init done"
+            echo "✅ Cloud-initation done"
 
             while [ ! -f /usr/local/bin/deploy.sh ]; do
               echo "Waiting for deploy.sh..."
