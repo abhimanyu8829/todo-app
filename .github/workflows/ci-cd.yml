@@ -254,16 +254,14 @@ jobs:
             "$EC2_USER@$EC2_HOST" << EOF
 
             echo "⏳ Waiting for cloud-init..."
-            cloud-init status --wait
+            cloud-init status --wait || true
 
-            echo "✅ Cloud-initation done"
-
-            while [ ! -f /usr/local/bin/deploy.sh ]; do
-              echo "Waiting for deploy.sh..."
-              sleep 5
-            done
+            echo "📜 Previous deploy logs:"
+            sudo cat /var/log/deploy.log || true
 
             echo "🚀 Running deployment..."
+
+            set -x
 
             IMAGE=${{ env.CR_ENDPOINT }}/${{ secrets.CR_REPOSITORY_API }} \
             TAG=${{ steps.tag.outputs.TAG }} \
@@ -272,6 +270,9 @@ jobs:
             AWS_REGION=${{ secrets.AWS_REGION }} \
             ECR_ENDPOINT=${{ env.CR_ENDPOINT }} \
             bash /usr/local/bin/deploy.sh
+
+            echo "📜 New deploy logs:"
+            sudo cat /var/log/deploy.log || true
 
           EOF
       # ── Health check ─────────────────────────────────────
