@@ -269,7 +269,7 @@ jobs:
       # ── Health check ───------──────────────────────────────────────
       - name: Health check
         run: |
-          echo "Waiting 15s for container to start..."
+          echo "Waiting 15s container to start..."
           sleep 15
 
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
